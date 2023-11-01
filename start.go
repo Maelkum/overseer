@@ -156,6 +156,10 @@ func (o *Overseer) createCmd(job Job) *exec.Cmd {
 		cmd.SysProcAttr = &procAttr
 	}
 
+	// NOTE: Setting child limits - https://man7.org/linux/man-pages/man2/clone3.2.html
+	// Relevant:
+	//	This file descriptor can be obtained by opening a cgroup v2 directory using either the O_RDONLY or the O_PATH flag.
+
 	return cmd
 }
 
