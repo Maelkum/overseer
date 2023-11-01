@@ -17,12 +17,12 @@ func (l *Limiter) Create(name string, limits Limits) error {
 		return fmt.Errorf("limits with id %v already exist", name)
 	}
 
-	group := path.Join(l.mountpoint, l.cgroup, name)
+	group := path.Join(l.cgroup, name)
 	specs := limitsToResources(limits)
 
 	cg, err := cgroup2.NewManager(l.mountpoint, group, specs)
 	if err != nil {
-		return fmt.Errorf("could not create cgroup: %w", err)
+		return fmt.Errorf("could not create cgroup (cgroup: %v): %w", group, err)
 	}
 
 	l.limits[name] = cg
