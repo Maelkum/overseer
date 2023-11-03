@@ -15,6 +15,10 @@ const (
 	failure = 1
 )
 
+var (
+	log zerolog.Logger
+)
+
 func main() {
 	os.Exit(run())
 }
@@ -37,7 +41,7 @@ func run() int {
 
 	pflag.Parse()
 
-	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	log = zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	if flagName == "" {
 		log.Info().Msg("name not specified, setting the value for the root cgroup")
@@ -47,23 +51,37 @@ func run() int {
 		flagCgroup = "/" + flagCgroup
 	}
 
-	limiter, err := limits.New(limits.DefaultMountpoint, flagCgroup)
+	limiter, err := limits.New(log, limits.DefaultMountpoint, flagCgroup)
 	if err != nil {
 		log.Error().Err(err).Msg("could not create limiter")
 		return failure
 	}
 
+	listGroups(limiter)
+
 	limits := limits.Limits{
 		CPUPercentage: flagCPUPercentage,
 		MemoryKB:      flagMemoryKB,
 	}
-	err = limiter.Create(flagName, limits)
+	err = limiter.CreateGroup(flagName, limits)
 	if err != nil {
 		log.Error().Err(err).Msg("could not set resource limits")
 		return failure
 	}
 
+	listGroups(limiter)
+
 	log.Info().Msg("all done")
 
 	return success
+}
+
+func listGroups(limiter *limits.Limiter) {
+	names, err := limiter.ListGroups()
+	if err != nil {
+		log.Error().Err(err).Msg("could not list limit groups")
+		return
+	}
+
+	log.Info().Strs("groups", names).Msg("existing limit groups")
 }

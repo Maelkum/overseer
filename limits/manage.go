@@ -1,51 +1,28 @@
 package limits
 
 import (
+	"errors"
 	"fmt"
-	"path"
-
-	"github.com/containerd/cgroups/v3/cgroup2"
 )
 
-func (l *Limiter) Create(name string, limits Limits) error {
-
-	l.Lock()
-	defer l.Unlock()
-
-	_, ok := l.limits[name]
-	if ok {
-		return fmt.Errorf("limits with id %v already exist", name)
-	}
-
-	group := path.Join(l.cgroup, name)
-	specs := limitsToResources(limits)
-
-	cg, err := cgroup2.NewManager(l.mountpoint, group, specs)
-	if err != nil {
-		return fmt.Errorf("could not create cgroup (cgroup: %v): %w", group, err)
-	}
-
-	l.limits[name] = cg
-
-	return nil
-}
-
-func (l *Limiter) Delete(name string) error {
+func (l *Limiter) AssignToGroup(name string, pid uint64) error {
 
 	l.Lock()
 	defer l.Unlock()
 
 	cg, ok := l.limits[name]
 	if !ok {
-		return nil
+		return errors.New("unknown group")
 	}
 
-	err := cg.Delete()
+	l.log.Info().Str("name", name).Uint64("pid", pid).Msg("assigning process to limit group")
+
+	err := cg.AddProc(pid)
 	if err != nil {
-		return fmt.Errorf("could not delete cgroup: %w", err)
+		return fmt.Errorf("could not assign process to group: %w", err)
 	}
 
-	delete(l.limits, name)
+	l.log.Info().Str("name", name).Uint64("pid", pid).Msg("process assigned to limit group")
 
 	return nil
 }

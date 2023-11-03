@@ -6,10 +6,12 @@ import (
 
 	"github.com/containerd/cgroups/v3"
 	"github.com/containerd/cgroups/v3/cgroup2"
+	"github.com/rs/zerolog"
 )
 
 type Limiter struct {
 	*sync.Mutex
+	log zerolog.Logger
 
 	mountpoint string
 	cgroup     string
@@ -17,7 +19,7 @@ type Limiter struct {
 	limits map[string]*cgroup2.Manager
 }
 
-func New(mountpoint string, parentCgroup string) (*Limiter, error) {
+func New(log zerolog.Logger, mountpoint string, parentCgroup string) (*Limiter, error) {
 
 	// Check if the system supports cgroups v2.
 	var haveV2 bool
@@ -29,12 +31,16 @@ func New(mountpoint string, parentCgroup string) (*Limiter, error) {
 	}
 
 	l := Limiter{
+		log: log,
+
 		mountpoint: mountpoint,
 		cgroup:     parentCgroup,
 
 		Mutex:  &sync.Mutex{},
 		limits: make(map[string]*cgroup2.Manager),
 	}
+
+	l.log.Debug().Str("cgroup", l.cgroup).Msg("created limiter")
 
 	return &l, nil
 }
