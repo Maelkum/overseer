@@ -66,8 +66,21 @@ func (l *Limiter) DeleteGroup(name string) error {
 	l.Lock()
 	defer l.Unlock()
 
+	// Handler exists only if this group is currently open and has a manager attached.
+	// If that's not the case, we'll remove it manually.
+	// This manual process may fail if the limit group has active processes assigned to it.
 	cg, ok := l.limits[name]
 	if !ok {
+
+		path := path.Join(l.mountpoint, l.cgroup, name)
+
+		l.log.Info().Str("path", path).Msg("manually deleting limit group")
+
+		err := os.RemoveAll(path)
+		if err != nil {
+			return fmt.Errorf("could not remove limit group (path: %v): %w", path, err)
+		}
+
 		return nil
 	}
 
