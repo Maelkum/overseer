@@ -8,7 +8,7 @@ import (
 	"github.com/containerd/cgroups/v3/cgroup2"
 )
 
-func (l *Limiter) CreateGroup(name string, limits Limits) error {
+func (l *Limiter) CreateGroup(name string, opts ...LimitOption) error {
 
 	l.Lock()
 	defer l.Unlock()
@@ -21,6 +21,8 @@ func (l *Limiter) CreateGroup(name string, limits Limits) error {
 	l.log.Info().Str("name", name).Msg("creating limit group")
 
 	group := path.Join(l.cgroup, name)
+
+	limits := getLimits(opts...)
 	specs := limitsToResources(limits)
 
 	cg, err := cgroup2.NewManager(l.mountpoint, group, specs)
@@ -96,4 +98,12 @@ func (l *Limiter) DeleteGroup(name string) error {
 	l.log.Info().Str("name", name).Msg("limit group deleted")
 
 	return nil
+}
+
+func getLimits(opts ...LimitOption) Limits {
+	limits := DefaultLimits
+	for _, opt := range opts {
+		opt(&limits)
+	}
+	return limits
 }

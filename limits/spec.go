@@ -33,5 +33,13 @@ func limitsToResources(limits Limits) *cgroup2.Resources {
 		}
 	}
 
+	if limits.ProcLimit > 0 {
+
+		// Limit number of processes in a group.
+		lr.Pids = &specs.LinuxPids{
+			Limit: int64(limits.ProcLimit),
+		}
+	}
+
 	return cgroup2.ToResources(&lr)
 }
