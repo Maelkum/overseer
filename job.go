@@ -54,7 +54,7 @@ type JobState struct {
 	Stderr string `json:"stderr,omitempty"`
 
 	StartTime    time.Time  `json:"start_time,omitempty"`
-	EndTime      *time.Time `json:"end_time,omitempty"` // TODO: Check behavior if this is not a pointer, does it get omitted?
+	EndTime      *time.Time `json:"end_time,omitempty"`
 	ObservedTime time.Time  `json:"observed_time,omitempty"`
 
 	ExitCode *int `json:"exit_code,omitempty"`
