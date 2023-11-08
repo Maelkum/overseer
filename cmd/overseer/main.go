@@ -5,30 +5,57 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/manifoldco/promptui"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/pflag"
 
 	"github.com/Maelkum/overseer"
+	"github.com/Maelkum/overseer/limits"
 )
+
+var allowList = []string{
+	"/home/aco/code/Maelkum/overseer/cmd/example-server/example-server",
+}
 
 type actionFunc func(id string) (overseer.JobState, error)
 
 func main() {
 
+	var (
+		flagCgroup string
+		flagAllow  []string
+		flagDeny   []string
+	)
+
+	pflag.StringVarP(&flagCgroup, "cgroup", "c", "overseer", "default cgroup to use for the overseer")
+	pflag.StringArrayVarP(&flagAllow, "allow", "a", allowList, "list of binaries allowed to execute")
+	pflag.StringArrayVarP(&flagDeny, "deny", "d", []string{}, "list of binaries not allowed to execute")
+
+	pflag.Parse()
+
 	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
-	allowlist := []string{
-		"/home/aco/code/Maelkum/overseer/cmd/example-server/example-server",
+	if flagCgroup == "" {
+		log.Fatal().Msg("cgroup cannot be empty")
 	}
 
-	denylist := []string{}
+	if !strings.HasPrefix(flagCgroup, "/") {
+		flagCgroup = "/" + flagCgroup
+	}
+
+	limiter, err := limits.New(log, limits.DefaultMountpoint, flagCgroup)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not create a limiter")
+	}
 
 	ov, err := overseer.New(
 		log,
-		overseer.WithAllowlist(allowlist),
-		overseer.WithDenylist(denylist),
+		limiter,
+		overseer.WithAllowlist(flagAllow),
+		overseer.WithDenylist(flagDeny),
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not create an overseer")
@@ -52,8 +79,6 @@ func main() {
 	}
 
 	log.Info().Msg("all jobs started")
-
-	_ = ov
 
 	var ids []string
 	for _, job := range jobs {
