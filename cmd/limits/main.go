@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -59,17 +60,47 @@ func run() int {
 
 	listGroups(limiter)
 
-	limits := limits.Limits{
-		CPUPercentage: flagCPUPercentage,
-		MemoryKB:      flagMemoryKB,
-	}
-	err = limiter.CreateGroup(flagName, limits)
+	err = limiter.CreateGroup(flagName,
+		limits.WithCPUPercentage(flagCPUPercentage),
+		limits.WithMemoryKB(flagMemoryKB),
+		limits.WithProcLimit(1),
+	)
 	if err != nil {
 		log.Error().Err(err).Msg("could not set resource limits")
 		return failure
 	}
 
 	listGroups(limiter)
+
+	pid := os.Getpid()
+	err = limiter.AssignToGroup(flagName, uint64(pid))
+	if err != nil {
+		log.Error().Err(err).Msg("could not assign process to limit group")
+		return failure
+	}
+
+	out, err := exec.Command("ls", "-lat").CombinedOutput()
+	if err != nil {
+		log.Printf("external command execution failed: %s", err)
+	} else {
+		log.Printf("external command output: ====================================\n%s\n====================================\n", out)
+	}
+
+	groups, err := limiter.ListGroups()
+	if err != nil {
+		log.Error().Err(err).Msg("could not list limit groups")
+		return failure
+	}
+
+	log.Info().Strs("groups", groups).Msg("found these limit groups")
+
+	for _, group := range groups {
+		err = limiter.DeleteGroup(group)
+		if err != nil {
+			log.Error().Err(err).Str("group", group).Msg("could not delete group")
+			continue
+		}
+	}
 
 	log.Info().Msg("all done")
 

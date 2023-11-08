@@ -2,6 +2,7 @@ package limits
 
 import (
 	"errors"
+	"os"
 	"sync"
 
 	"github.com/containerd/cgroups/v3"
@@ -16,7 +17,12 @@ type Limiter struct {
 	mountpoint string
 	cgroup     string
 
-	limits map[string]*cgroup2.Manager
+	limits map[string]*limitHandler
+}
+
+type limitHandler struct {
+	manager *cgroup2.Manager
+	handle  *os.File
 }
 
 func New(log zerolog.Logger, mountpoint string, parentCgroup string) (*Limiter, error) {
@@ -37,7 +43,7 @@ func New(log zerolog.Logger, mountpoint string, parentCgroup string) (*Limiter, 
 		cgroup:     parentCgroup,
 
 		Mutex:  &sync.Mutex{},
-		limits: make(map[string]*cgroup2.Manager),
+		limits: make(map[string]*limitHandler),
 	}
 
 	l.log.Debug().Str("cgroup", l.cgroup).Msg("created limiter")

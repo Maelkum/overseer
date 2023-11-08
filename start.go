@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"nhooyr.io/websocket"
+
+	"github.com/Maelkum/overseer/limits"
 )
 
 type Handle struct {
@@ -61,7 +63,10 @@ func (o *Overseer) startJob(job Job) (*Handle, error) {
 		stderr bytes.Buffer
 	)
 
-	cmd := o.createCmd(job)
+	cmd, err := o.createCmd(job)
+	if err != nil {
+		return nil, fmt.Errorf("could not create command: %w", err)
+	}
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	cmd.Stdin = job.Stdin
@@ -117,7 +122,7 @@ func (o *Overseer) startJob(job Job) (*Handle, error) {
 	}
 
 	start := time.Now()
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		return nil, fmt.Errorf("could not start job: %w", err)
 	}
@@ -139,7 +144,7 @@ func (o *Overseer) prepareJob(job Job) error {
 	return nil
 }
 
-func (o *Overseer) createCmd(job Job) *exec.Cmd {
+func (o *Overseer) createCmd(job Job) (*exec.Cmd, error) {
 
 	workdir := o.workdir(job.ID)
 
@@ -147,22 +152,61 @@ func (o *Overseer) createCmd(job Job) *exec.Cmd {
 	cmd.Dir = workdir
 	cmd.Env = append(cmd.Env, job.Exec.Env...)
 
-	if o.cfg.FilesystemIsolation {
+	if job.Limits != nil {
 
-		procAttr := syscall.SysProcAttr{
-			Chroot: workdir,
+		opts := getLimitOpts(*job.Limits)
+		err := o.limiter.CreateGroup(job.ID, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("could not create limit group for job: %w", err)
 		}
 
+		fd, err := o.limiter.GetHandle(job.ID)
+		if err != nil {
+			return nil, fmt.Errorf("could not get limit group handle: %w", err)
+		}
+
+		// NOTE: Setting child limits - https://man7.org/linux/man-pages/man2/clone3.2.html
+		// Relevant:
+		//	This file descriptor can be obtained by opening a cgroup v2 directory using either the O_RDONLY or the O_PATH flag.
+		procAttr := syscall.SysProcAttr{
+			UseCgroupFD: true,
+			CgroupFD:    int(fd),
+		}
 		cmd.SysProcAttr = &procAttr
 	}
 
-	// NOTE: Setting child limits - https://man7.org/linux/man-pages/man2/clone3.2.html
-	// Relevant:
-	//	This file descriptor can be obtained by opening a cgroup v2 directory using either the O_RDONLY or the O_PATH flag.
+	if o.cfg.FilesystemIsolation {
 
-	return cmd
+		if cmd.SysProcAttr != nil {
+			cmd.SysProcAttr.Chroot = workdir
+		} else {
+			cmd.SysProcAttr = &syscall.SysProcAttr{
+				Chroot: workdir,
+			}
+		}
+	}
+
+	return cmd, nil
 }
 
 func (o *Overseer) workdir(id string) string {
 	return filepath.Join(o.cfg.Workdir, id)
+}
+
+func getLimitOpts(jobLimits JobLimits) []limits.LimitOption {
+
+	var opts []limits.LimitOption
+	if jobLimits.CPUPercentage > 0 {
+		opts = append(opts, limits.WithCPUPercentage(jobLimits.CPUPercentage))
+	}
+
+	if jobLimits.MemoryLimitKB > 0 {
+		opts = append(opts, limits.WithMemoryKB(int64(jobLimits.MemoryLimitKB)))
+	}
+
+	if jobLimits.NoExec {
+		opts = append(opts, limits.WithProcLimit(1))
+	}
+
+	return opts
 }

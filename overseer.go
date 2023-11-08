@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog"
+
+	"github.com/Maelkum/overseer/limits"
 )
 
 // Overseer is a lot like `Executor`, but with a more granular control. It can do the same thing an executor does, but also have
@@ -14,7 +16,8 @@ type Overseer struct {
 	cfg Config
 
 	*sync.Mutex
-	jobs map[string]*Handle
+	jobs    map[string]*Handle
+	limiter *limits.Limiter
 }
 
 func New(log zerolog.Logger, options ...Option) (*Overseer, error) {
@@ -29,13 +32,22 @@ func New(log zerolog.Logger, options ...Option) (*Overseer, error) {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
+	// TODO: Limiter may not be something we need, so make it optional.
+	limiter, err := limits.New(log, limits.DefaultMountpoint, DefaultCgroup)
+	if err != nil {
+		return nil, fmt.Errorf("could not create limtier: %w", err)
+	}
+
 	overseer := Overseer{
 		log:  log,
 		cfg:  cfg,
 		jobs: make(map[string]*Handle),
 
-		Mutex: &sync.Mutex{},
+		Mutex:   &sync.Mutex{},
+		limiter: limiter,
 	}
 
 	return &overseer, nil
 }
+
+// TODO: Add shutdown for overseer.

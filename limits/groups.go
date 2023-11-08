@@ -30,7 +30,9 @@ func (l *Limiter) CreateGroup(name string, opts ...LimitOption) error {
 		return fmt.Errorf("could not create cgroup (cgroup: %v): %w", group, err)
 	}
 
-	l.limits[name] = cg
+	l.limits[name] = &limitHandler{
+		manager: cg,
+	}
 
 	l.log.Info().Str("name", name).Msg("limit group created")
 
@@ -71,7 +73,7 @@ func (l *Limiter) DeleteGroup(name string) error {
 	// Handler exists only if this group is currently open and has a manager attached.
 	// If that's not the case, we'll remove it manually.
 	// This manual process may fail if the limit group has active processes assigned to it.
-	cg, ok := l.limits[name]
+	lh, ok := l.limits[name]
 	if !ok {
 
 		path := path.Join(l.mountpoint, l.cgroup, name)
@@ -88,9 +90,14 @@ func (l *Limiter) DeleteGroup(name string) error {
 
 	l.log.Info().Str("name", name).Msg("deleting limit group")
 
-	err := cg.Delete()
+	err := lh.manager.Delete()
 	if err != nil {
 		return fmt.Errorf("could not delete cgroup: %w", err)
+	}
+
+	err = lh.handle.Close()
+	if err != nil {
+		l.log.Error().Err(err).Str("name", name).Msg("could not close file handle for limit group")
 	}
 
 	delete(l.limits, name)

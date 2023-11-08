@@ -6,4 +6,6 @@ import (
 
 const (
 	defaultFSPermissions = os.ModePerm
+
+	DefaultCgroup = "/overseer"
 )
