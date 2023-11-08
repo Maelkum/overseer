@@ -152,9 +152,21 @@ func (o *Overseer) createCmd(job Job) (*exec.Cmd, error) {
 	cmd.Dir = workdir
 	cmd.Env = append(cmd.Env, job.Exec.Env...)
 
+	var jobLimits *JobLimits
 	if job.Limits != nil {
+		jobLimits = job.Limits
+	}
 
-		opts := getLimitOpts(*job.Limits)
+	if o.cfg.NoChildren {
+		if jobLimits == nil {
+			jobLimits = &JobLimits{}
+		}
+		jobLimits.NoExec = true
+	}
+
+	if jobLimits != nil {
+
+		opts := getLimitOpts(*jobLimits)
 		err := o.limiter.CreateGroup(job.ID, opts...)
 		if err != nil {
 			return nil, fmt.Errorf("could not create limit group for job: %w", err)
