@@ -187,17 +187,6 @@ func (o *Overseer) createCmd(job Job) (*exec.Cmd, error) {
 		cmd.SysProcAttr = &procAttr
 	}
 
-	if o.cfg.FilesystemIsolation {
-
-		if cmd.SysProcAttr != nil {
-			cmd.SysProcAttr.Chroot = workdir
-		} else {
-			cmd.SysProcAttr = &syscall.SysProcAttr{
-				Chroot: workdir,
-			}
-		}
-	}
-
 	return cmd, nil
 }
 

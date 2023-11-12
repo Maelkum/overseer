@@ -18,9 +18,7 @@ type Config struct {
 	Allowlist []string
 	Denylist  []string
 
-	NoChildren          bool
-	ReadOnlyFilesystem  bool
-	FilesystemIsolation bool
+	NoChildren bool
 }
 
 func (cfg Config) Validate() error {
@@ -76,19 +74,5 @@ func WithDenylist(executables []string) Option {
 func WithNoChildren(b bool) Option {
 	return func(cfg *Config) {
 		cfg.NoChildren = b
-	}
-}
-
-// WithReadOnlyFilesystem prohibits started jobs from writing to the filesystem.
-func WithReadOnlyFilesystem(b bool) Option {
-	return func(cfg *Config) {
-		cfg.ReadOnlyFilesystem = b
-	}
-}
-
-// WithFSIsolation prohibits started jobs from accessing the filesystem, beyound their sandbox.
-func WithFilesystemIsolation(b bool) Option {
-	return func(cfg *Config) {
-		cfg.FilesystemIsolation = b
 	}
 }
