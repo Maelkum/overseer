@@ -12,8 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 
-	"github.com/Maelkum/overseer"
 	"github.com/Maelkum/overseer/limits"
+	"github.com/Maelkum/overseer/overseer"
 )
 
 var allowList = []string{

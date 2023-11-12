@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/google/uuid"
 
-	"github.com/Maelkum/overseer"
+	"github.com/Maelkum/overseer/overseer"
 )
 
 func getJobs() []overseer.Job {
