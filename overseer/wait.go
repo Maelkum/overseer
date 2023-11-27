@@ -43,5 +43,10 @@ func (o *Overseer) Wait(id string) (JobState, error) {
 		state.Status = StatusFailed
 	}
 
+	err = o.limiter.DeleteGroup(id)
+	if err != nil {
+		o.log.Error().Err(err).Str("job", id).Msg("could not delete limit group")
+	}
+
 	return state, nil
 }

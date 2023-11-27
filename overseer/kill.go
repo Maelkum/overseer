@@ -58,5 +58,10 @@ func (o *Overseer) Kill(id string) (JobState, error) {
 	state.ExitCode = exitCode
 	state.Status = status
 
+	err = o.limiter.DeleteGroup(id)
+	if err != nil {
+		o.log.Error().Err(err).Msg("could not delete limiter group")
+	}
+
 	return state, nil
 }

@@ -134,10 +134,21 @@ func main() {
 	for _, jobID := range ids {
 		state, err := ov.Kill(jobID)
 		if err != nil {
-			log.Error().Err(err)
+			log.Error().Err(err).Str("job", jobID).Msg("could not kill job")
+			continue
 		}
 
 		log.Info().Str("job", jobID).Interface("state", state).Msg("killed job")
+	}
+
+	for _, id := range ids {
+		err = limiter.DeleteGroup(id)
+		if err != nil {
+			log.Error().Err(err).Str("job", id).Msg("could not delete limiter group")
+			continue
+		}
+
+		log.Info().Str("job", id).Msg("deleted limiter group")
 	}
 
 	log.Info().Msg("all done")

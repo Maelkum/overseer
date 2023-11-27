@@ -18,7 +18,7 @@ func getJobs() []overseer.Job {
 				":8080",
 				"--name",
 				"first-server-name",
-				"--execute",
+				"--exec",
 				"true",
 			},
 		},
@@ -26,7 +26,9 @@ func getJobs() []overseer.Job {
 		OutputStream: "http://localhost:9000/",
 		ErrorStream:  "http://localhost:9001/",
 		Limits: &overseer.JobLimits{
-			NoExec: true,
+			NoExec:        true,
+			CPUPercentage: 0.80,
+			MemoryLimitKB: 128_000,
 		},
 	}
 
@@ -38,6 +40,10 @@ func getJobs() []overseer.Job {
 				":8081",
 				"--name",
 				"second-server-name"},
+		},
+		Limits: &overseer.JobLimits{
+			CPUPercentage: 0.75,
+			MemoryLimitKB: 256_000,
 		},
 		ID: uuid.New().String(),
 	}

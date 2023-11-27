@@ -11,4 +11,6 @@ type Limiter interface {
 
 	// TODO: Too directly tied to the limiter implementation too.
 	GetHandle(id string) (uintptr, error)
+
+	DeleteGroup(id string) error
 }

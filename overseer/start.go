@@ -185,6 +185,10 @@ func (o *Overseer) createCmd(job Job) (*exec.Cmd, error) {
 			CgroupFD:    int(fd),
 		}
 		cmd.SysProcAttr = &procAttr
+
+		// TODO: Check SysProcAttr
+		// Cloneflags   uintptr        // Flags for clone calls (Linux only)
+		// Unshareflags uintptr        // Flags for unshare calls (Linux only)
 	}
 
 	return cmd, nil
