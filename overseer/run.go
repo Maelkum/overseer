@@ -2,18 +2,20 @@ package overseer
 
 import (
 	"fmt"
+
+	"github.com/Maelkum/overseer/job"
 )
 
-func (o *Overseer) Run(job Job) (JobState, error) {
+func (o *Overseer) Run(j job.Job) (job.State, error) {
 
-	h, err := o.Start(job)
+	h, err := o.Start(j)
 	if err != nil {
-		return JobState{}, fmt.Errorf("could not start job: %w", err)
+		return job.State{}, fmt.Errorf("could not start job: %w", err)
 	}
 
 	state, err := o.Wait(h.ID)
 	if err != nil {
-		return JobState{}, fmt.Errorf("could not wait on job: %w", err)
+		return job.State{}, fmt.Errorf("could not wait on job: %w", err)
 	}
 
 	return state, nil

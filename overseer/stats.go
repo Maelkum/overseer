@@ -3,23 +3,25 @@ package overseer
 import (
 	"errors"
 	"time"
+
+	"github.com/Maelkum/overseer/job"
 )
 
-func (o *Overseer) Stats(id string) (JobState, error) {
+func (o *Overseer) Stats(id string) (job.State, error) {
 
 	o.Lock()
 	h, ok := o.jobs[id]
 	o.Unlock()
 
 	if !ok {
-		return JobState{}, errors.New("unknown job")
+		return job.State{}, errors.New("unknown job")
 	}
 
 	h.Lock()
 	defer h.Unlock()
 
-	state := JobState{
-		Status:       StatusRunning,
+	state := job.State{
+		Status:       job.StatusRunning,
 		Stdout:       h.stdout.String(),
 		Stderr:       h.stderr.String(),
 		StartTime:    h.start,

@@ -2,10 +2,12 @@ package overseer
 
 import (
 	"fmt"
+
+	"github.com/Maelkum/overseer/job"
 )
 
 // checkPrerequisites will check if the job is allowed to run - e.g. if the allowlist or denylist exclude it.
-func (o *Overseer) checkPrerequisites(job Job) error {
+func (o *Overseer) checkPrerequisites(job job.Job) error {
 
 	if len(o.cfg.Allowlist) > 0 {
 		allowed := false

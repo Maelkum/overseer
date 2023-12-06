@@ -4,16 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/Maelkum/overseer/job"
 )
 
-func (o *Overseer) Kill(id string) (JobState, error) {
+func (o *Overseer) Kill(id string) (job.State, error) {
 
 	o.Lock()
 	h, ok := o.jobs[id]
 	o.Unlock()
 
 	if !ok {
-		return JobState{}, errors.New("unknown job")
+		return job.State{}, errors.New("unknown job")
 	}
 
 	h.Lock()
@@ -22,13 +24,13 @@ func (o *Overseer) Kill(id string) (JobState, error) {
 	defer o.harvest(id)
 
 	if h.cmd.Process == nil {
-		return JobState{}, errors.New("job is not running")
+		return job.State{}, errors.New("job is not running")
 	}
 
 	// TODO: Check if the process has started any processes.
 	err := h.cmd.Process.Kill()
 	if err != nil {
-		return JobState{}, fmt.Errorf("could not kill process: %w", err)
+		return job.State{}, fmt.Errorf("could not kill process: %w", err)
 	}
 
 	endTime := time.Now()
@@ -39,14 +41,14 @@ func (o *Overseer) Kill(id string) (JobState, error) {
 
 		signaled, _ := wasSignalled(h.cmd.ProcessState)
 		if !signaled {
-			return JobState{}, fmt.Errorf("could not wait on process: %w", err)
+			return job.State{}, fmt.Errorf("could not wait on process: %w", err)
 		}
 
 		o.log.Trace().Err(err).Str("job", id).Msg("expected error - job was signaled, wait produced an error")
 	}
 
-	state := JobState{
-		Status:       StatusKilled,
+	state := job.State{
+		Status:       job.StatusKilled,
 		Stdout:       h.stdout.String(),
 		Stderr:       h.stderr.String(),
 		StartTime:    h.start,

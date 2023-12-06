@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 
+	"github.com/Maelkum/overseer/job"
 	"github.com/Maelkum/overseer/limits"
 	"github.com/Maelkum/overseer/overseer"
 )
@@ -20,7 +21,7 @@ var allowList = []string{
 	"/home/aco/code/Maelkum/overseer/cmd/example-server/example-server",
 }
 
-type actionFunc func(id string) (overseer.JobState, error)
+type actionFunc func(id string) (job.State, error)
 
 func main() {
 

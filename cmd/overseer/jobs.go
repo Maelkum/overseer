@@ -3,15 +3,15 @@ package main
 import (
 	"github.com/google/uuid"
 
-	"github.com/Maelkum/overseer/overseer"
+	"github.com/Maelkum/overseer/job"
 )
 
-func getJobs() []overseer.Job {
+func getJobs() []job.Job {
 
-	var jobs []overseer.Job
+	var jobs []job.Job
 
-	srv1 := overseer.Job{
-		Exec: overseer.Command{
+	srv1 := job.Job{
+		Exec: job.Command{
 			Path: `/home/aco/code/Maelkum/overseer/cmd/example-server/example-server`,
 			Args: []string{
 				"--address",
@@ -25,15 +25,15 @@ func getJobs() []overseer.Job {
 		ID:           uuid.New().String(),
 		OutputStream: "http://localhost:9000/",
 		ErrorStream:  "http://localhost:9001/",
-		Limits: &overseer.JobLimits{
+		Limits: &job.Limits{
 			NoExec:        true,
 			CPUPercentage: 0.80,
 			MemoryLimitKB: 128_000,
 		},
 	}
 
-	srv2 := overseer.Job{
-		Exec: overseer.Command{
+	srv2 := job.Job{
+		Exec: job.Command{
 			Path: `/home/aco/code/Maelkum/overseer/cmd/example-server/example-server`,
 			Args: []string{
 				"--address",
@@ -41,7 +41,7 @@ func getJobs() []overseer.Job {
 				"--name",
 				"second-server-name"},
 		},
-		Limits: &overseer.JobLimits{
+		Limits: &job.Limits{
 			CPUPercentage: 0.75,
 			MemoryLimitKB: 256_000,
 		},

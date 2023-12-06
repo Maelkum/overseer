@@ -4,16 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/Maelkum/overseer/job"
 )
 
-func (o *Overseer) Wait(id string) (JobState, error) {
+func (o *Overseer) Wait(id string) (job.State, error) {
 
 	o.Lock()
 	h, ok := o.jobs[id]
 	o.Unlock()
 
 	if !ok {
-		return JobState{}, errors.New("unknown job")
+		return job.State{}, errors.New("unknown job")
 	}
 
 	h.Lock()
@@ -23,13 +25,13 @@ func (o *Overseer) Wait(id string) (JobState, error) {
 
 	err := h.cmd.Wait()
 	if err != nil {
-		return JobState{}, fmt.Errorf("could not wait on job: %w", err)
+		return job.State{}, fmt.Errorf("could not wait on job: %w", err)
 	}
 
 	endTime := time.Now()
 
-	state := JobState{
-		Status:       StatusDone,
+	state := job.State{
+		Status:       job.StatusDone,
 		Stdout:       h.stdout.String(),
 		Stderr:       h.stderr.String(),
 		StartTime:    h.start,
@@ -40,7 +42,7 @@ func (o *Overseer) Wait(id string) (JobState, error) {
 	exitCode := h.cmd.ProcessState.ExitCode()
 	state.ExitCode = &exitCode
 	if *state.ExitCode != 0 {
-		state.Status = StatusFailed
+		state.Status = job.StatusFailed
 	}
 
 	err = o.limiter.DeleteGroup(id)

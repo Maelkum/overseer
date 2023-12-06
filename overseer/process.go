@@ -4,25 +4,27 @@ import (
 	"errors"
 	"os"
 	"syscall"
+
+	"github.com/Maelkum/overseer/job"
 )
 
-func determineProcessStatus(ps *os.ProcessState) (*int, JobStatus) {
+func determineProcessStatus(ps *os.ProcessState) (*int, job.Status) {
 
 	if ps == nil {
-		return nil, StatusRunning
+		return nil, job.StatusRunning
 	}
 
 	exitCode := ps.ExitCode()
 	if exitCode == 0 {
-		return &exitCode, StatusDone
+		return &exitCode, job.StatusDone
 	}
 
 	signaled, _ := wasSignalled(ps)
 	if signaled {
-		return &exitCode, StatusKilled
+		return &exitCode, job.StatusKilled
 	}
 
-	return &exitCode, StatusFailed
+	return &exitCode, job.StatusFailed
 }
 
 // TODO: Check - OS dependent.

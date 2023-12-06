@@ -12,13 +12,14 @@ import (
 
 	"nhooyr.io/websocket"
 
+	"github.com/Maelkum/overseer/job"
 	"github.com/Maelkum/overseer/limits"
 )
 
 type Handle struct {
 	*sync.Mutex
 	ID     string
-	source Job
+	source job.Job
 
 	stdout       *bytes.Buffer
 	outputStream *websocket.Conn
@@ -31,7 +32,7 @@ type Handle struct {
 	cmd *exec.Cmd
 }
 
-func (o *Overseer) Start(job Job) (*Handle, error) {
+func (o *Overseer) Start(job job.Job) (*Handle, error) {
 
 	err := o.prepareJob(job)
 	if err != nil {
@@ -56,7 +57,7 @@ func (o *Overseer) Start(job Job) (*Handle, error) {
 	return h, nil
 }
 
-func (o *Overseer) startJob(job Job) (*Handle, error) {
+func (o *Overseer) startJob(job job.Job) (*Handle, error) {
 
 	var (
 		stdout bytes.Buffer
@@ -133,7 +134,7 @@ func (o *Overseer) startJob(job Job) (*Handle, error) {
 	return &handle, nil
 }
 
-func (o *Overseer) prepareJob(job Job) error {
+func (o *Overseer) prepareJob(job job.Job) error {
 
 	workdir := o.workdir(job.ID)
 	err := o.cfg.FS.MkdirAll(workdir, defaultFSPermissions)
@@ -144,22 +145,22 @@ func (o *Overseer) prepareJob(job Job) error {
 	return nil
 }
 
-func (o *Overseer) createCmd(job Job) (*exec.Cmd, error) {
+func (o *Overseer) createCmd(execJob job.Job) (*exec.Cmd, error) {
 
-	workdir := o.workdir(job.ID)
+	workdir := o.workdir(execJob.ID)
 
-	cmd := exec.Command(job.Exec.Path, job.Exec.Args...)
+	cmd := exec.Command(execJob.Exec.Path, execJob.Exec.Args...)
 	cmd.Dir = workdir
-	cmd.Env = append(cmd.Env, job.Exec.Env...)
+	cmd.Env = append(cmd.Env, execJob.Exec.Env...)
 
-	var jobLimits *JobLimits
-	if job.Limits != nil {
-		jobLimits = job.Limits
+	var jobLimits *job.Limits
+	if execJob.Limits != nil {
+		jobLimits = execJob.Limits
 	}
 
 	if o.cfg.NoChildren {
 		if jobLimits == nil {
-			jobLimits = &JobLimits{}
+			jobLimits = &job.Limits{}
 		}
 		jobLimits.NoExec = true
 	}
@@ -167,12 +168,12 @@ func (o *Overseer) createCmd(job Job) (*exec.Cmd, error) {
 	if jobLimits != nil {
 
 		opts := getLimitOpts(*jobLimits)
-		err := o.limiter.CreateGroup(job.ID, opts...)
+		err := o.limiter.CreateGroup(execJob.ID, opts...)
 		if err != nil {
 			return nil, fmt.Errorf("could not create limit group for job: %w", err)
 		}
 
-		fd, err := o.limiter.GetHandle(job.ID)
+		fd, err := o.limiter.GetHandle(execJob.ID)
 		if err != nil {
 			return nil, fmt.Errorf("could not get limit group handle: %w", err)
 		}
@@ -198,7 +199,7 @@ func (o *Overseer) workdir(id string) string {
 	return filepath.Join(o.cfg.Workdir, id)
 }
 
-func getLimitOpts(jobLimits JobLimits) []limits.LimitOption {
+func getLimitOpts(jobLimits job.Limits) []limits.LimitOption {
 
 	var opts []limits.LimitOption
 	if jobLimits.CPUPercentage > 0 {
