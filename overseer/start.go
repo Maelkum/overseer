@@ -14,11 +14,11 @@ import (
 
 	"github.com/Maelkum/overseer/job"
 	"github.com/Maelkum/overseer/limits"
+	"github.com/google/uuid"
 )
 
-type Handle struct {
+type handle struct {
 	*sync.Mutex
-	ID     string
 	source job.Job
 
 	stdout       *bytes.Buffer
@@ -32,39 +32,40 @@ type Handle struct {
 	cmd *exec.Cmd
 }
 
-func (o *Overseer) Start(job job.Job) (*Handle, error) {
+func (o *Overseer) Start(job job.Job) (string, error) {
 
-	err := o.prepareJob(job)
+	id := uuid.NewString()
+	err := o.prepareJob(id, job)
 	if err != nil {
-		return nil, fmt.Errorf("could not prepare job: %w", err)
+		return "", fmt.Errorf("could not prepare job: %w", err)
 	}
 
 	err = o.checkPrerequisites(job)
 	if err != nil {
-		return nil, fmt.Errorf("prerequisites not met: %w", err)
+		return "", fmt.Errorf("prerequisites not met: %w", err)
 	}
 
-	h, err := o.startJob(job)
+	h, err := o.startJob(id, job)
 	if err != nil {
-		return nil, fmt.Errorf("could not start job: %w", err)
+		return "", fmt.Errorf("could not start job: %w", err)
 	}
 
 	o.Lock()
 	defer o.Unlock()
 
-	o.jobs[job.ID] = h
+	o.jobs[id] = h
 
-	return h, nil
+	return id, nil
 }
 
-func (o *Overseer) startJob(job job.Job) (*Handle, error) {
+func (o *Overseer) startJob(id string, job job.Job) (*handle, error) {
 
 	var (
 		stdout bytes.Buffer
 		stderr bytes.Buffer
 	)
 
-	cmd, err := o.createCmd(job)
+	cmd, err := o.createCmd(id, job)
 	if err != nil {
 		return nil, fmt.Errorf("could not create command: %w", err)
 	}
@@ -74,9 +75,8 @@ func (o *Overseer) startJob(job job.Job) (*Handle, error) {
 
 	o.log.Info().Str("cmd", cmd.String()).Msg("observer created command")
 
-	handle := Handle{
+	handle := handle{
 		Mutex:  &sync.Mutex{},
-		ID:     job.ID,
 		source: job,
 
 		stdout: &stdout,
@@ -90,12 +90,12 @@ func (o *Overseer) startJob(job job.Job) (*Handle, error) {
 		// Continue even if stdout stream cannot be established.
 		outputStream, err := wsConnect(job.OutputStream)
 		if err != nil {
-			o.log.Error().Err(err).Str("job", job.ID).Msg("could not establish output stream")
+			o.log.Error().Err(err).Str("job", id).Msg("could not establish output stream")
 		} else {
 
 			ws := wsWriter{
 				conn: outputStream,
-				log:  o.log.With().Str("job", job.ID).Logger(),
+				log:  o.log.With().Str("job", id).Logger(),
 			}
 			handle.outputStream = outputStream
 
@@ -109,12 +109,12 @@ func (o *Overseer) startJob(job job.Job) (*Handle, error) {
 	if job.ErrorStream != "" {
 		errorStream, err := wsConnect(job.ErrorStream)
 		if err != nil {
-			o.log.Error().Err(err).Str("job", job.ID).Msg("could not establish error stream")
+			o.log.Error().Err(err).Str("job", id).Msg("could not establish error stream")
 		} else {
 
 			ws := wsWriter{
 				conn: errorStream,
-				log:  o.log.With().Str("job", job.ID).Logger(),
+				log:  o.log.With().Str("job", id).Logger(),
 			}
 			handle.errorStream = errorStream
 
@@ -134,9 +134,9 @@ func (o *Overseer) startJob(job job.Job) (*Handle, error) {
 	return &handle, nil
 }
 
-func (o *Overseer) prepareJob(job job.Job) error {
+func (o *Overseer) prepareJob(id string, job job.Job) error {
 
-	workdir := o.workdir(job.ID)
+	workdir := o.workdir(id)
 	err := o.cfg.FS.MkdirAll(workdir, defaultFSPermissions)
 	if err != nil {
 		return fmt.Errorf("could not create work directory for request: %w", err)
@@ -145,9 +145,9 @@ func (o *Overseer) prepareJob(job job.Job) error {
 	return nil
 }
 
-func (o *Overseer) createCmd(execJob job.Job) (*exec.Cmd, error) {
+func (o *Overseer) createCmd(id string, execJob job.Job) (*exec.Cmd, error) {
 
-	workdir := o.workdir(execJob.ID)
+	workdir := o.workdir(id)
 
 	cmd := exec.Command(execJob.Exec.Path, execJob.Exec.Args...)
 	cmd.Dir = workdir
@@ -168,12 +168,12 @@ func (o *Overseer) createCmd(execJob job.Job) (*exec.Cmd, error) {
 	if jobLimits != nil {
 
 		opts := getLimitOpts(*jobLimits)
-		err := o.limiter.CreateGroup(execJob.ID, opts...)
+		err := o.limiter.CreateGroup(id, opts...)
 		if err != nil {
 			return nil, fmt.Errorf("could not create limit group for job: %w", err)
 		}
 
-		fd, err := o.limiter.GetHandle(execJob.ID)
+		fd, err := o.limiter.GetHandle(id)
 		if err != nil {
 			return nil, fmt.Errorf("could not get limit group handle: %w", err)
 		}

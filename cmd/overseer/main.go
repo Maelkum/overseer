@@ -66,25 +66,20 @@ func main() {
 
 	jobs := getJobs()
 
-	jobHandles := make(map[string]*overseer.Handle)
-	_ = jobHandles
-
+	var ids []string
 	for i, job := range jobs {
 
-		h, err := ov.Start(job)
+		id, err := ov.Start(job)
 		if err != nil {
 			log.Fatal().Err(err).Int("index", i).Msg("could not start job")
+			continue
 		}
 
-		log.Info().Int("index", i).Str("id", h.ID).Msg("job started")
+		log.Info().Int("index", i).Str("id", id).Msg("job started")
+		ids = append(ids, id)
 	}
 
 	log.Info().Msg("all jobs started")
-
-	var ids []string
-	for _, job := range jobs {
-		ids = append(ids, job.ID)
-	}
 
 	// Control loop.
 	for {

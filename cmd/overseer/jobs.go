@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/google/uuid"
-
 	"github.com/Maelkum/overseer/job"
 )
 
@@ -22,7 +20,6 @@ func getJobs() []job.Job {
 				"true",
 			},
 		},
-		ID:           uuid.New().String(),
 		OutputStream: "http://localhost:9000/",
 		ErrorStream:  "http://localhost:9001/",
 		Limits: &job.Limits{
@@ -45,7 +42,6 @@ func getJobs() []job.Job {
 			CPUPercentage: 0.75,
 			MemoryLimitKB: 256_000,
 		},
-		ID: uuid.New().String(),
 	}
 
 	jobs = append(jobs, srv1, srv2)

@@ -5,7 +5,6 @@ import (
 )
 
 type Job struct {
-	ID           string    `json:"id,omitempty"`
 	Exec         Command   `json:"exec,omitempty"`
 	Stdin        io.Reader `json:"stdin,omitempty"`
 	OutputStream string    `json:"output_stream,omitempty"`

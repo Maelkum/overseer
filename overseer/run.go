@@ -8,12 +8,12 @@ import (
 
 func (o *Overseer) Run(j job.Job) (job.State, error) {
 
-	h, err := o.Start(j)
+	id, err := o.Start(j)
 	if err != nil {
 		return job.State{}, fmt.Errorf("could not start job: %w", err)
 	}
 
-	state, err := o.Wait(h.ID)
+	state, err := o.Wait(id)
 	if err != nil {
 		return job.State{}, fmt.Errorf("could not wait on job: %w", err)
 	}
