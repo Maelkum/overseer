@@ -65,7 +65,7 @@ func (o *Overseer) startJob(id string, job job.Job) (*handle, error) {
 		stderr bytes.Buffer
 	)
 
-	cmd, err := o.createCmd(id, job)
+	cmd, err := o.createCmd(id, &job)
 	if err != nil {
 		return nil, fmt.Errorf("could not create command: %w", err)
 	}
@@ -145,7 +145,7 @@ func (o *Overseer) prepareJob(id string, job job.Job) error {
 	return nil
 }
 
-func (o *Overseer) createCmd(id string, execJob job.Job) (*exec.Cmd, error) {
+func (o *Overseer) createCmd(id string, execJob *job.Job) (*exec.Cmd, error) {
 
 	workdir := o.workdir(id)
 
@@ -191,6 +191,8 @@ func (o *Overseer) createCmd(id string, execJob job.Job) (*exec.Cmd, error) {
 		// Cloneflags   uintptr        // Flags for clone calls (Linux only)
 		// Unshareflags uintptr        // Flags for unshare calls (Linux only)
 	}
+
+	execJob.Limits = jobLimits
 
 	return cmd, nil
 }

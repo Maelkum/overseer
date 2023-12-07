@@ -2,7 +2,6 @@ package overseer
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/Maelkum/overseer/job"
@@ -25,7 +24,8 @@ func (o *Overseer) Wait(id string) (job.State, error) {
 
 	err := h.cmd.Wait()
 	if err != nil {
-		return job.State{}, fmt.Errorf("could not wait on job: %w", err)
+		o.log.Error().Err(err).Msg("error waiting on job")
+		// No return - continue.
 	}
 
 	endTime := time.Now()
@@ -45,9 +45,11 @@ func (o *Overseer) Wait(id string) (job.State, error) {
 		state.Status = job.StatusFailed
 	}
 
-	err = o.limiter.DeleteGroup(id)
-	if err != nil {
-		o.log.Error().Err(err).Str("job", id).Msg("could not delete limit group")
+	if h.source.Limits != nil {
+		err = o.limiter.DeleteGroup(id)
+		if err != nil {
+			o.log.Error().Err(err).Str("job", id).Msg("could not delete limit group")
+		}
 	}
 
 	return state, nil
