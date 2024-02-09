@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Maelkum/overseer/job"
+	"github.com/Maelkum/overseer/overseer/internal/process"
 )
 
 func (o *Overseer) Wait(id string) (job.State, error) {
@@ -45,12 +46,11 @@ func (o *Overseer) Wait(id string) (job.State, error) {
 		state.Status = job.StatusFailed
 	}
 
-	if h.source.Limits != nil {
-		err = o.limiter.DeleteGroup(id)
-		if err != nil {
-			o.log.Error().Err(err).Str("job", id).Msg("could not delete limit group")
-		}
+	usage, err := process.GetUsage(h.cmd)
+	if err != nil {
+		o.log.Error().Err(err).Str("job", id).Msg("could not retrieve usage information")
 	}
+	state.ResourceUsage = usage
 
 	return state, nil
 }

@@ -14,7 +14,8 @@ type Job struct {
 }
 
 type Command struct {
-	Path string   `json:"path,omitempty"`
-	Args []string `json:"args,omitempty"`
-	Env  []string `json:"env,omitempty"`
+	WorkDir string   `json:"working_directory,omitempty"`
+	Path    string   `json:"path,omitempty"`
+	Args    []string `json:"args,omitempty"`
+	Env     []string `json:"env,omitempty"`
 }

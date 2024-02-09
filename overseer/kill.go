@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Maelkum/overseer/job"
+	"github.com/Maelkum/overseer/overseer/internal/process"
 )
 
 func (o *Overseer) Kill(id string) (job.State, error) {
@@ -60,10 +61,11 @@ func (o *Overseer) Kill(id string) (job.State, error) {
 	state.ExitCode = exitCode
 	state.Status = status
 
-	err = o.limiter.DeleteGroup(id)
+	usage, err := process.GetUsage(h.cmd)
 	if err != nil {
-		o.log.Error().Err(err).Msg("could not delete limiter group")
+		o.log.Error().Err(err).Str("job", id).Msg("could not retrieve usage information")
 	}
+	state.ResourceUsage = usage
 
 	return state, nil
 }
