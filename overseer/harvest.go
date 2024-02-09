@@ -1,6 +1,8 @@
 package overseer
 
 import (
+	"os"
+
 	"nhooyr.io/websocket"
 )
 
@@ -27,6 +29,18 @@ func (o *Overseer) harvest(id string) {
 			o.log.Error().Err(err).Msg("could not close error stream")
 		} else {
 			o.log.Debug().Str("job", id).Msg("closed error stream")
+		}
+	}
+
+	err := os.RemoveAll(h.workdir)
+	if err != nil {
+		o.log.Error().Err(err).Msg("could not remove job workdir")
+	}
+
+	if h.source.Limits != nil {
+		err = o.limiter.DeleteGroup(id)
+		if err != nil {
+			o.log.Error().Err(err).Str("job", id).Msg("could not delete limit group")
 		}
 	}
 }

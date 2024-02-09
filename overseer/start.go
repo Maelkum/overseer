@@ -21,6 +21,7 @@ type handle struct {
 	*sync.Mutex
 	source job.Job
 
+	workdir      string
 	stdout       *bytes.Buffer
 	outputStream *websocket.Conn
 	stderr       *bytes.Buffer
@@ -73,14 +74,15 @@ func (o *Overseer) startJob(id string, job job.Job) (*handle, error) {
 	cmd.Stderr = &stderr
 	cmd.Stdin = job.Stdin
 
-	o.log.Info().Str("cmd", cmd.String()).Msg("observer created command")
+	o.log.Info().Str("cmd", cmd.String()).Msg("overseer created command")
 
 	handle := handle{
 		Mutex:  &sync.Mutex{},
 		source: job,
 
-		stdout: &stdout,
-		stderr: &stderr,
+		workdir: cmd.Dir,
+		stdout:  &stdout,
+		stderr:  &stderr,
 
 		cmd: cmd,
 	}
@@ -147,7 +149,12 @@ func (o *Overseer) prepareJob(id string, job job.Job) error {
 
 func (o *Overseer) createCmd(id string, execJob *job.Job) (*exec.Cmd, error) {
 
-	workdir := o.workdir(id)
+	workdir := execJob.Exec.WorkDir
+
+	// TODO: Config option - disallow setting workdir.
+	if workdir == "" {
+		workdir = o.workdir(id)
+	}
 
 	cmd := exec.Command(execJob.Exec.Path, execJob.Exec.Args...)
 	cmd.Dir = workdir

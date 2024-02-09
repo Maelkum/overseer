@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Maelkum/overseer/job"
+	"github.com/Maelkum/overseer/overseer/internal/process"
 )
 
 func (o *Overseer) Stats(id string) (job.State, error) {
@@ -38,6 +39,12 @@ func (o *Overseer) Stats(id string) (job.State, error) {
 		endTime := time.Now()
 		state.EndTime = &endTime
 	}
+
+	usage, err := process.GetUsage(h.cmd)
+	if err != nil {
+		o.log.Error().Err(err).Str("job", id).Msg("could not retrieve usage information")
+	}
+	state.ResourceUsage = usage
 
 	return state, nil
 }
