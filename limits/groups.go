@@ -20,14 +20,12 @@ func (l *Limiter) CreateGroup(name string, opts ...LimitOption) error {
 
 	l.log.Info().Str("name", name).Msg("creating limit group")
 
-	group := path.Join(l.cgroup, name)
-
 	limits := getLimits(opts...)
 	specs := limitsToResources(limits)
 
-	cg, err := cgroup2.NewManager(l.mountpoint, group, specs)
+	cg, err := l.limits[""].manager.NewChild(name, specs)
 	if err != nil {
-		return fmt.Errorf("could not create cgroup (cgroup: %v): %w", group, err)
+		return fmt.Errorf("could not create cgroup (name: %v): %w", name, err)
 	}
 
 	l.limits[name] = &limitHandler{
@@ -107,10 +105,24 @@ func (l *Limiter) DeleteGroup(name string) error {
 	return nil
 }
 
-func getLimits(opts ...LimitOption) Limits {
-	limits := DefaultLimits
-	for _, opt := range opts {
-		opt(&limits)
+func (l *Limiter) loadRootGroup(opts ...LimitOption) error {
+
+	cg, err := cgroup2.Load(l.cgroup, cgroup2.WithMountpoint(l.mountpoint))
+	if err != nil {
+		return fmt.Errorf("could not load root cgroup: %w", err)
 	}
-	return limits
+
+	limits := getLimits(opts...)
+	specs := limitsToResources(limits)
+
+	err = cg.Update(specs)
+	if err != nil {
+		return fmt.Errorf("could not set limits for root cgroup: %w", err)
+	}
+
+	l.limits[""] = &limitHandler{
+		manager: cg,
+	}
+
+	return nil
 }
