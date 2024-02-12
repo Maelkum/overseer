@@ -51,7 +51,6 @@ func New(log zerolog.Logger, mountpoint string, parentCgroup string, opts ...Lim
 
 	l.log.Debug().Str("cgroup", l.cgroup).Msg("created limiter")
 
-	// We have some limits we need to set.
 	err := l.loadRootGroup(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load root cgroup: %w", err)
