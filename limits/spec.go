@@ -1,6 +1,7 @@
 package limits
 
 import (
+	"math"
 	"time"
 
 	"github.com/containerd/cgroups/v3/cgroup2"
@@ -9,36 +10,37 @@ import (
 
 func limitsToResources(limits Limits) *cgroup2.Resources {
 
-	lr := specs.LinuxResources{}
+	var (
+		period                = uint64(time.Second.Microseconds())
+		unlimitedMemory int64 = math.MaxInt64
+	)
 
-	if limits.CPUPercentage != 1.0 {
-
-		// We want to set total CPU time limit. We'll use one year as the period.
-		period := uint64(time.Second.Microseconds())
-		quota := int64(float64(period) * float64(limits.CPUPercentage))
-
-		lr.CPU = &specs.LinuxCPU{
+	// By default, remove any previous limits.
+	lr := specs.LinuxResources{
+		CPU: &specs.LinuxCPU{
 			Period: &period,
-			Quota:  &quota,
-		}
+			Quota:  nil,
+		},
+		Memory: &specs.LinuxMemory{
+			Limit: &unlimitedMemory,
+		},
+		Pids: &specs.LinuxPids{
+			Limit: 0,
+		},
 	}
 
-	if limits.MemoryKB > 0 {
+	if limits.CPUPercentage > 0 && limits.CPUPercentage < 1.0 {
+		quota := int64(float64(period) * limits.CPUPercentage)
+		lr.CPU.Quota = &quota
+	}
 
-		// Convert limit to bytes.
-		memLimit := limits.MemoryKB * 1000
-
-		lr.Memory = &specs.LinuxMemory{
-			Limit: &memLimit,
-		}
+	memLimit := limits.MemoryKB * 1000
+	if memLimit > 0 {
+		lr.Memory.Limit = &memLimit
 	}
 
 	if limits.ProcLimit > 0 {
-
-		// Limit number of processes in a group.
-		lr.Pids = &specs.LinuxPids{
-			Limit: int64(limits.ProcLimit),
-		}
+		lr.Pids.Limit = int64(limits.ProcLimit)
 	}
 
 	return cgroup2.ToResources(&lr)
