@@ -13,12 +13,14 @@ var defaultConfig = Config{
 }
 
 type Config struct {
-	Workdir   string
-	FS        afero.Fs
-	Allowlist []string
-	Denylist  []string
-
+	Workdir    string
+	FS         afero.Fs
+	Allowlist  []string
+	Denylist   []string
+	Limiter    Limiter
 	NoChildren bool
+
+	useLimiter bool
 }
 
 func (cfg Config) Validate() error {
@@ -74,5 +76,13 @@ func WithDenylist(executables []string) Option {
 func WithNoChildren(b bool) Option {
 	return func(cfg *Config) {
 		cfg.NoChildren = b
+	}
+}
+
+// WithLimiter provides the limiter that can be used to set resource limits on jobs.
+func WithLimiter(l Limiter) Option {
+	return func(cfg *Config) {
+		cfg.Limiter = l
+		cfg.useLimiter = true
 	}
 }

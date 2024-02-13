@@ -54,7 +54,7 @@ func main() {
 
 	ov, err := overseer.New(
 		log,
-		limiter,
+		overseer.WithLimiter(limiter),
 		overseer.WithAllowlist(flagAllow),
 		overseer.WithDenylist(flagDeny),
 	)

@@ -15,11 +15,9 @@ type Overseer struct {
 
 	*sync.Mutex
 	jobs map[string]*handle
-
-	limiter Limiter
 }
 
-func New(log zerolog.Logger, limiter Limiter, options ...Option) (*Overseer, error) {
+func New(log zerolog.Logger, options ...Option) (*Overseer, error) {
 
 	cfg := defaultConfig
 	for _, option := range options {
@@ -37,8 +35,6 @@ func New(log zerolog.Logger, limiter Limiter, options ...Option) (*Overseer, err
 		jobs: make(map[string]*handle),
 
 		Mutex: &sync.Mutex{},
-
-		limiter: limiter,
 	}
 
 	return &overseer, nil
