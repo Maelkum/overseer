@@ -38,7 +38,7 @@ func (o *Overseer) harvest(id string) {
 	}
 
 	if h.source.Limits != nil {
-		err = o.limiter.DeleteGroup(id)
+		err = o.cfg.Limiter.DeleteGroup(id)
 		if err != nil {
 			o.log.Error().Err(err).Str("job", id).Msg("could not delete limit group")
 		}
