@@ -12,8 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 
+	"github.com/Maelkum/limits/limits"
 	"github.com/Maelkum/overseer/job"
-	"github.com/Maelkum/overseer/limits"
 	"github.com/Maelkum/overseer/overseer"
 )
 
@@ -47,7 +47,7 @@ func main() {
 		flagCgroup = "/" + flagCgroup
 	}
 
-	limiter, err := limits.New(log, limits.DefaultMountpoint, flagCgroup)
+	limiter, err := limits.New()
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not create a limiter")
 	}
@@ -55,7 +55,7 @@ func main() {
 	ov, err := overseer.New(
 		log,
 		overseer.WithLimiter(limiter),
-		overseer.WithAllowlist(flagAllow),
+		overseer.WithAllowlist(flagAllow...),
 		overseer.WithDenylist(flagDeny),
 	)
 	if err != nil {

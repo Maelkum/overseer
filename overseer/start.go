@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"nhooyr.io/websocket"
-
-	"github.com/Maelkum/overseer/job"
-	"github.com/Maelkum/overseer/limits"
+	"github.com/coder/websocket"
 	"github.com/google/uuid"
+
+	"github.com/Maelkum/limits/limits"
+	"github.com/Maelkum/overseer/job"
 )
 
 type handle struct {
@@ -172,6 +172,7 @@ func (o *Overseer) createCmd(id string, execJob *job.Job) (*exec.Cmd, error) {
 		jobLimits.NoExec = true
 	}
 
+	// TODO: Rework this part.
 	// TODO: Set no exec for root group if required.
 
 	if o.cfg.useLimiter {
@@ -183,16 +184,14 @@ func (o *Overseer) createCmd(id string, execJob *job.Job) (*exec.Cmd, error) {
 		)
 
 		if jobLimits == nil {
-			fd, err = o.cfg.Limiter.GetHandle("")
+			fd, err = o.cfg.Limiter.GetGroupHandle("")
 		} else {
 
 			opts := getLimitOpts(*jobLimits)
-			err := o.cfg.Limiter.CreateGroup(id, opts...)
+			fd, err = o.cfg.Limiter.CreateGroup(id, opts...)
 			if err != nil {
 				return nil, fmt.Errorf("could not create limit group for job: %w", err)
 			}
-
-			fd, err = o.cfg.Limiter.GetHandle(id)
 		}
 
 		if err != nil {
@@ -226,16 +225,17 @@ func getLimitOpts(jobLimits job.Limits) []limits.LimitOption {
 
 	var opts []limits.LimitOption
 	if jobLimits.CPUPercentage > 0 {
-		opts = append(opts, limits.WithCPUPercentage(jobLimits.CPUPercentage))
+		opts = append(opts, limits.MaxCPU(jobLimits.CPUPercentage))
 	}
 
 	if jobLimits.MemoryLimitKB > 0 {
-		opts = append(opts, limits.WithMemoryKB(int64(jobLimits.MemoryLimitKB)))
+		opts = append(opts, limits.MaxMemory(int64(jobLimits.MemoryLimitKB)))
 	}
 
-	if jobLimits.NoExec {
-		opts = append(opts, limits.WithProcLimit(1))
-	}
+	// TODO: Removed for now.
+	// if jobLimits.NoExec {
+	// 	opts = append(opts, limits.WithProcLimit(1))
+	// }
 
 	return opts
 }
