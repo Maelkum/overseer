@@ -136,7 +136,7 @@ func (o *Overseer) startJob(id string, job job.Job) (*handle, error) {
 	return &handle, nil
 }
 
-func (o *Overseer) prepareJob(id string, job job.Job) error {
+func (o *Overseer) prepareJob(id string, _ job.Job) error {
 
 	workdir := o.workdir(id)
 	err := o.cfg.FS.MkdirAll(workdir, defaultFSPermissions)
