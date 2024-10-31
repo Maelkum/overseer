@@ -16,12 +16,11 @@ func main() {
 func run() (exitCode int) {
 
 	var (
-		flagStdout         string
-		flagStderr         string
-		flagExitCode       int
-		flagDuration       time.Duration
-		flagBusywork       bool
-		flagAllocateMemory int64
+		flagStdout   string
+		flagStderr   string
+		flagExitCode int
+		flagDuration time.Duration
+		flagBusywork bool
 	)
 
 	pflag.StringVar(&flagStdout, "stdout", "", "output to return on STDOUT")
@@ -29,7 +28,6 @@ func run() (exitCode int) {
 	pflag.IntVar(&flagExitCode, "exit-code", 0, "exit code for the app")
 
 	pflag.DurationVar(&flagDuration, "duration", 0, "how long should the app run")
-	pflag.Int64Var(&flagAllocateMemory, "allocate-memory", 0, "minimum memory the app should allocate")
 	pflag.BoolVar(&flagBusywork, "busywork", false, "should the app do busywork to spend CPU cycles while running")
 
 	pflag.Parse()
@@ -51,15 +49,6 @@ func run() (exitCode int) {
 	if err != nil {
 		log.Printf("could not write to stderr: %s", err)
 		return 1
-	}
-
-	if flagAllocateMemory > 0 {
-		// TODO: See if this gets optimized away if not used in the loop.
-		// If this does not get optimized away - this isn't necessary
-		mem := make([]byte, flagAllocateMemory)
-		for _, b := range mem {
-			_ = b
-		}
 	}
 
 	ch := make(chan struct{})
