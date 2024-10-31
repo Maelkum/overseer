@@ -3,3 +3,4 @@ cmd/bootstrap-limiter/bootstrap-limiter
 cmd/example-server/example-server
 cmd/overseer/overseer
 
+tools/runnable/runnable
