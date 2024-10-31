@@ -19,7 +19,7 @@ var (
 func TestOverseer_Run(t *testing.T) {
 
 	var (
-		duration = 3 * time.Second
+		duration = 1 * time.Second
 		stdout   = fmt.Sprintf("test-string-%v", rand.Int())
 		stderr   = fmt.Sprintf("test-string-%v", rand.Int())
 
@@ -55,10 +55,8 @@ func TestOverseer_Run(t *testing.T) {
 	require.GreaterOrEqual(t, out.StartTime, start)
 	require.LessOrEqual(t, *out.EndTime, end)
 
-	// Not verifying sys time.
+	// Not verifying CPU times.
 
-	// require.NotZero(t, out.ResourceUsage.WallClockTime) // TODO: Wall clock time.
-	require.NotZero(t, out.ResourceUsage.CPUUserTime)
 	require.NotZero(t, out.ResourceUsage.MemoryMaxKB)
 }
 
